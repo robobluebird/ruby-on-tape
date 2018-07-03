@@ -1,8 +1,10 @@
 require 'wavefile'
 
+include WaveFile
+include Math
+
 SAMPLE_RATE = 44100
-TWO_PI = 2 * Math::PI
-RANDOM_GENERATOR = Random.new
+TWO_PI = 2 * PI
 SIGNALS = [:short, :long]
 
 class String
@@ -39,6 +41,14 @@ def short
   samples 880
 end
 
+def hello
+  # generate the sync start byte
+end
+
+def countdown
+  # generate the sync countdown bytes (5...4...3...2...1)
+end
+
 def samples frequency
   angular_frequency = TWO_PI * frequency
 
@@ -50,14 +60,26 @@ def samples frequency
     time = index.to_f / SAMPLE_RATE
     position = angular_frequency * time
 
-    Math::sin position
+    sin position
   end
 end
 
 def wave name, samples
-  WaveFile::Writer.new(name, WaveFile::Format.new(:mono, :pcm_16, SAMPLE_RATE)) do |writer|
-    writer.write WaveFile::Buffer.new(samples, WaveFile::Format.new(:mono, :float, SAMPLE_RATE))
+  Writer.new(name, Format.new(:mono, :pcm_16, SAMPLE_RATE)) do |writer|
+    writer.write Buffer.new(samples, Format.new(:mono, :float, SAMPLE_RATE))
   end
+end
+
+def surf
+  p collect_samples ARGV.first
+end
+
+def collect_samples filename
+  [].tap do |buffers|
+    Reader.new(ARGV.first).each_buffer do |buffer|
+      buffers << buffer
+    end
+  end.map(&:samples).flatten
 end
 
 main
