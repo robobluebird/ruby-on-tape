@@ -9,7 +9,7 @@ SIGNALS = [:short, :long]
 
 class String
   def to_bits
-    self.split('').map(&:ord).map { |i| "%08b" % i }
+    self.chars.map(&:ord).map { |i| "%08b" % i }
   end
 end
 
@@ -25,8 +25,12 @@ def filename
   end
 end
 
+def bitize str
+  str.to_bits.join.split('').map(&:to_i)
+end
+
 def main
-  sample filename, ARGV.join(' ').to_bits.join.split('').map(&:to_i)
+  sample filename, bitize(ARGV.join(' '))
 end
 
 def sample name, bits
@@ -71,15 +75,64 @@ def wave name, samples
 end
 
 def surf
-  p collect_samples ARGV.first
+  result = samples_to_bits collect_samples ARGV.first
+
+  if ARGV.count >= 2
+    File.open(ARGV[1], 'w') { |file| file.write result }
+  elsif ARGV.first.end_with? '.rb'
+    eval result
+  else
+    p result
+  end
 end
 
 def collect_samples filename
   [].tap do |buffers|
-    Reader.new(ARGV.first).each_buffer do |buffer|
+    Reader.new(ARGV.first, Format.new(:mono, :pcm_16, SAMPLE_RATE)).each_buffer do |buffer|
       buffers << buffer
     end
   end.map(&:samples).flatten
 end
 
-main
+def samples_to_bits samples
+  i = 0
+  c = []
+  a = []
+
+  while i < samples.count - 1 do
+    a << samples[i]
+
+    if samples[i] < 0 && samples[i + 1] >= 0
+      c << a
+      a = []
+    end
+
+    a << samples[i + 1] if i == samples.count - 2
+
+    i += 1
+  end
+
+  c << a
+
+  [].tap do |ary|
+    c.map do |bit|
+      bit.count / 50 - 1
+    end.each_slice(8) do |slice|
+      ary << slice.join.to_i(2).chr
+    end
+  end.join
+end
+
+def scribe
+  source = ARGV.first
+  filename = "#{ source.split('.').first }.wav"
+  bits = bitize File.open(source) { |file| file.read }
+  sample filename, bits
+end
+
+# main
+surf
+# scribe
+# "thing".unpack('C*')
+# "thing".bytes
+# "thing".pack(?)
