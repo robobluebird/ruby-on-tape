@@ -3,13 +3,13 @@ require 'wavefile'
 include WaveFile
 include Math
 
-SAMPLE_RATE = 44100
+SAMPLE_RATE = 8000
 TWO_PI = 2 * PI
 SIGNALS = [:short, :long]
 
 class String
   def to_bits
-    self.chars.map(&:ord).map { |i| "%08b" % i }
+    self.bytes.map { |i| "%08b" % i }
   end
 end
 
@@ -30,6 +30,10 @@ def bitize str
 end
 
 def main
+  send ARGV.shift.to_sym
+end
+
+def example 
   sample filename, bitize(ARGV.join(' '))
 end
 
@@ -69,11 +73,12 @@ def samples frequency
 end
 
 def wave name, samples
-  Writer.new(name, Format.new(:mono, :pcm_16, SAMPLE_RATE)) do |writer|
+  Writer.new(name, Format.new(:mono, :pcm_8, SAMPLE_RATE)) do |writer|
     writer.write Buffer.new(samples, Format.new(:mono, :float, SAMPLE_RATE))
   end
 end
 
+# take in a sound and turn it into a named file (no filename memory yet)
 def surf
   result = samples_to_bits collect_samples ARGV.first
 
@@ -88,7 +93,7 @@ end
 
 def collect_samples filename
   [].tap do |buffers|
-    Reader.new(ARGV.first, Format.new(:mono, :pcm_16, SAMPLE_RATE)).each_buffer do |buffer|
+    Reader.new(ARGV.first, Format.new(:mono, :pcm_8, SAMPLE_RATE)).each_buffer do |buffer|
       buffers << buffer
     end
   end.map(&:samples).flatten
@@ -102,7 +107,7 @@ def samples_to_bits samples
   while i < samples.count - 1 do
     a << samples[i]
 
-    if samples[i] < 0 && samples[i + 1] >= 0
+    if samples[i] < 128 && samples[i + 1] >= 128
       c << a
       a = []
     end
@@ -116,13 +121,14 @@ def samples_to_bits samples
 
   [].tap do |ary|
     c.map do |bit|
-      bit.count / 50 - 1
+      bit.count / 9 - 1
     end.each_slice(8) do |slice|
       ary << slice.join.to_i(2).chr
     end
   end.join
 end
 
+# take in a file and turn it into sound
 def scribe
   source = ARGV.first
   filename = "#{ source.split('.').first }.wav"
@@ -130,9 +136,4 @@ def scribe
   sample filename, bits
 end
 
-# main
-surf
-# scribe
-# "thing".unpack('C*')
-# "thing".bytes
-# "thing".pack(?)
+main
