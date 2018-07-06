@@ -137,4 +137,22 @@ def scribe
   sample "#{ name }.wav", ext_bits + file_bits
 end
 
+def stream
+  buffer = []
+  samples = collect_samples ARGV.first
+
+  i = 0
+  while i < samples.count do
+    buffer << samples[i]
+
+    # crossing a "boundry" from below "zero" to above which indicates a completed wave
+    # turn the number of samples into a bit (distinguishing a 440hz tone from 880hz (18 vs 9 samples)
+    if buffer[-2] < 128 && buffer[-1] >= 128
+      bit = buffer.slice!(0...-1).count / 9 - 1
+    end
+
+    i += 1
+  end
+end
+
 main
