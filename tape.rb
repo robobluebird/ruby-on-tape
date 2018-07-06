@@ -9,7 +9,7 @@ SIGNALS = [:short, :long]
 
 class String
   def to_bits
-    self.bytes.map { |i| "%08b" % i }
+    self.bytes.map { |i| "%08b" % i }.join.split('').map(&:to_i)
   end
 end
 
@@ -25,16 +25,12 @@ def filename
   end
 end
 
-def bitize str
-  str.to_bits.join.split('').map(&:to_i)
-end
-
 def main
   send ARGV.shift.to_sym
 end
 
 def example 
-  sample filename, bitize(ARGV.join(' '))
+  sample filename, ARGV.join(' ').to_bits
 end
 
 def sample name, bits
@@ -80,15 +76,17 @@ end
 
 # take in a sound and turn it into a named file (no filename memory yet)
 def surf
+  raise 'bork' if ARGV.length < 2
+
   result = samples_to_bits collect_samples ARGV.first
 
-  if ARGV.count >= 2
-    File.open(ARGV[1], 'w') { |file| file.write result }
-  elsif ARGV.first.end_with? '.rb'
-    eval result
-  else
-    p result
-  end
+  encoded_type = result.slice!(0..4).strip
+  encoded_ext = encoded_type.length > 0 ? ".#{encoded_type}" : ''
+
+  filename = ARGV[1]
+  filename = filename + encoded_ext if filename.split('.').count < 2
+
+  File.open(filename, 'w') { |file| file.write result }
 end
 
 def collect_samples filename
@@ -130,10 +128,13 @@ end
 
 # take in a file and turn it into sound
 def scribe
-  source = ARGV.first
-  filename = "#{ source.split('.').first }.wav"
-  bits = bitize File.open(source) { |file| file.read }
-  sample filename, bits
+  raise 'bork' unless ARGV.any?
+
+  name, ext = ARGV.first.split('.')
+  file_bits = File.open(ARGV.first) { |file| file.read }.to_bits
+  ext_bits = ext.to_s.ljust(5, ' ').to_bits
+
+  sample "#{ name }.wav", ext_bits + file_bits
 end
 
 main
