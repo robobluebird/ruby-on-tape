@@ -6,6 +6,7 @@ include Math
 SAMPLE_RATE = 8000
 TWO_PI = 2 * PI
 SIGNALS = [:short, :long]
+SYNC = [0x02, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01]
 
 class String
   def to_bits
@@ -130,29 +131,123 @@ end
 def scribe
   raise 'bork' unless ARGV.any?
 
-  name, ext = ARGV.first.split('.')
-  file_bits = File.open(ARGV.first) { |file| file.read }.to_bits
-  ext_bits = ext.to_s.ljust(5, ' ').to_bits
+  name, type = ARGV.first.split('.')
+  name_bits = name.to_s.ljust(64, ' ').to_bits
+  type_bits = type.to_s.ljust(5, ' ').to_bits
+  data_bits = File.open(ARGV.first) { |file| file.read }.to_bits
+  size = data_bits.count / 8
+  size_bits = ("%032b" % size).split('').map(&:to_i)
+  prelude_bits = SYNC.map { |byte| "%08b" % byte }.join.split('').map(&:to_i)
 
-  sample "#{ name }.wav", ext_bits + file_bits
+  sample "#{ name }.wav", prelude_bits + name_bits + type_bits + size_bits + data_bits
 end
 
 def stream
-  buffer = []
+  bit_buffer = [].fill(0, 0, 8)
+  sample_buffer = []
+  name_buffer = []
+  size_buffer = []
+  type_buffer = []
+  data_buffer = []
+  programs = []
+
+  sync_index = 0
+  synced = false
+  need_this_byte = false
+
+  name = nil
+  type = nil
+  size = nil
+  data = nil
+
   samples = collect_samples ARGV.first
+
+  p "start of tape"
 
   i = 0
   while i < samples.count do
-    buffer << samples[i]
+    sample_buffer << samples[i]
 
-    # crossing a "boundry" from below "zero" to above which indicates a completed wave
-    # turn the number of samples into a bit (distinguishing a 440hz tone from 880hz (18 vs 9 samples)
-    if buffer[-2] < 128 && buffer[-1] >= 128
-      bit = buffer.slice!(0...-1).count / 9 - 1
+    if sample_buffer.count >= 2 && sample_buffer[-2] < 128 && sample_buffer[-1] >= 128
+      bit = sample_buffer.slice!(0...-1).count / 9 - 1
+
+      bit_buffer.push(bit)
+      bit_buffer.shift if bit_buffer.size == 9
+
+      if synced
+        if name_buffer.size < 512
+          name_buffer << bit
+
+          if name_buffer.size == 512
+            name = [].tap { |ary| name_buffer.each_slice(8) { |slice| ary << slice.join.to_i(2).chr } }.join.strip
+            p "Name: #{name}"
+          end
+        elsif type_buffer.size < 40
+          type_buffer << bit
+
+          if type_buffer.size == 40
+            type = [].tap { |ary| type_buffer.each_slice(8) { |slice| ary << slice.join.to_i(2).chr } }.join.strip
+            p "Type: #{type}"
+          end
+        elsif size_buffer.size < 32
+          size_buffer << bit
+
+          if size_buffer.size == 32
+            size = size_buffer.join.to_i(2)
+            p "Size: #{size}"
+          end
+        elsif data_buffer.size < size * 8 - 1
+          data_buffer << bit
+
+          if data_buffer.size == size * 8 - 1
+            data = [].tap { |ary| data_buffer.each_slice(8) { |slice| ary << slice.join.to_i(2).chr } }.join.strip
+
+            p "Data size: #{data.size}"
+
+            programs << { name: name, type: type, size: size, data: data }
+            p "Programs:"
+            pp programs
+
+            name = nil
+            type = nil
+            size = nil
+            name_buffer = []
+            size_buffer = []
+            type_buffer = []
+            data_buffer = []
+            synced = false
+            sync_index = 0
+            need_this_byte = false
+          end
+        end
+      else
+        if bit_buffer.count == 8
+          if bit_buffer.join.to_i(2) == SYNC[sync_index]
+            p "FOUND: #{SYNC[sync_index]}"
+
+            need_this_byte = true
+            bit_buffer.clear
+            sync_index += 1
+
+            if sync_index == SYNC.count
+              synced = true
+              p "synced"
+            end
+          elsif need_this_byte
+            p "didn't get a byte when we needed it (#{SYNC[sync_index]})"
+
+            need_this_byte = false
+            bit_buffer.fill(0, 0, 8)
+            sync_index = 0
+          end
+        end
+      end
     end
 
     i += 1
   end
+
+  p "end of tape"
 end
 
 main
