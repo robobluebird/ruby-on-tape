@@ -10,35 +10,61 @@ module Ruby2D
       @tag = opts[:tag]
       @label = opts[:label] || 'button'
 
+      opts[:color] = 'white'
+
+      @border = Rectangle.new(z: opts[:z],
+                              x: opts[:x] - 1,
+                              y: opts[:y] - 1,
+                              width: opts[:width] + 2,
+                              height: opts[:height] + 2,
+                              color: 'black')
+
       super opts
+
+      @text = Text.new(z: opts[:z],
+                       text: @label,
+                       font: 'luximb.ttf',
+                       size: 10,
+                       x: opts[:x],
+                       y: opts[:y],
+                       color: 'black')
+    end
+
+    def z= new_z
+      @border.z = new_z
+      super new_z
+      @text.z = new_z
     end
 
     def translate dx, dy
       self.x = @x + dx
       self.y = @y + dy
+
+      @text.x = @text.x + dx
+      @text.y = @text.y + dy
+
+      @border.x = @border.x + dx
+      @border.y = @border.y + dy
     end
 
     def resize dx, dy
       self.width = @width + dx
       self.height = @height + dy
-    end
-  end
 
-  class Image
-    def translate dx, dy
-      @x += dx
-      @y += dy
+      @border.width = @border.width + dx
+      @border.height = @border.height + dy
     end
-  end
 
-  class Triangle
-    def translate dx, dy
-      @x1 += dx
-      @y1 += dy
-      @x2 += dx
-      @y2 += dy
-      @x3 += dx
-      @y3 += dy
+    def invert
+      self.color = 'black'
+      @border.color = 'white'
+      @text.color = 'white'
+    end
+
+    def revert
+      self.color = 'white'
+      @border.color = 'black'
+      @text.color = 'black'
     end
   end
 end
@@ -47,6 +73,7 @@ end
 @objects = []
 
 set title: "..."
+set background: 'white'
 
 def closer item
   i = zord.index(item)
@@ -83,8 +110,7 @@ end
   x: 100,
   y: 100,
   width: 100,
-  height: 50,
-  color: 'blue'
+  height: 50
 )
 
 @objects << Button.new(
@@ -92,14 +118,22 @@ end
   x: 100,
   y: 100,
   width: 100,
-  height: 50,
-  color: 'red'
+  height: 50
 )
+
+def resizing? item, e
+  ((item.x + item.width - 10)..(item.x + item.width)).cover?(e.x) &&
+    ((item.y + item.height - 10)..(item.y + item.height)).cover?(e.y)
+end
 
 on :mouse_down do |e|
   @item = zord.find { |o| o.contains? e.x, e.y }
-  @mtype = if ((@item.x + @item.width - 10)..(@item.x + @item.width)).cover?(e.x) &&
-               ((@item.y + @item.height - 10)..(@item.y + @item.height)).cover?(e.y)
+
+  next unless @item
+
+  @item.invert
+
+  @mtype = if resizing?(@item, e)
              :resize
            else
              :translate
@@ -107,6 +141,7 @@ on :mouse_down do |e|
 end
 
 on :mouse_up do |e|
+  @item.revert if @item
   @item = nil
   @mtype = nil
 end

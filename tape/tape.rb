@@ -9,7 +9,7 @@ sensor.when_data_received do |data|
 end
 
 loop do
-  p samples.count
+  p samples
   samples = []
   sleep 1
 end
