@@ -24,10 +24,20 @@ module Ruby2D
       @text = Text.new(z: opts[:z],
                        text: @label,
                        font: 'luximb.ttf',
-                       size: 10,
-                       x: opts[:x],
-                       y: opts[:y],
+                       size: 12,
                        color: 'black')
+
+      arrange_text!
+    end
+
+    def arrange_text!
+      @text.x = self.x + (self.width / 2) - @text.width / 2
+      @text.y = self.y + (self.height / 2) - @text.height / 2
+    end
+
+    def resize_border!
+      @border.width = self.width + 2
+      @border.height = self.height + 2
     end
 
     def z= new_z
@@ -51,8 +61,8 @@ module Ruby2D
       self.width = @width + dx
       self.height = @height + dy
 
-      @border.width = @border.width + dx
-      @border.height = @border.height + dy
+      resize_border!
+      arrange_text!
     end
 
     def invert
