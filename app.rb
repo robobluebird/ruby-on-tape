@@ -4,9 +4,10 @@ require 'ruby2d'
 
 module Ruby2D
   class Button < Rectangle
-    attr_accessor :tag, :label
+    attr_accessor :tag, :label, :show_border
 
     def initialize opts = {}
+      @show_border = 1
       @tag = opts[:tag]
       @label = opts[:label] || 'button'
 
@@ -19,6 +20,14 @@ module Ruby2D
                               height: opts[:height] + 2,
                               color: 'black')
 
+      @shadow = Rectangle.new(z: opts[:z],
+                              x: opts[:x] + 2,
+                              y: opts[:y] + 2,
+                              width: opts[:width],
+                              height: opts[:height],
+                              color: 'black')
+
+
       super opts
 
       @text = Text.new(z: opts[:z],
@@ -30,18 +39,33 @@ module Ruby2D
       arrange_text!
     end
 
+    def show_border
+      @border.opacity = 1
+      @shadow.opacity = 1
+      @show_border = 1
+    end
+
+    def hide_border
+      @border.opacity = 0
+      @shadow.opacity = 0
+      @show_border = 0
+    end
+
     def arrange_text!
       @text.x = self.x + (self.width / 2) - @text.width / 2
       @text.y = self.y + (self.height / 2) - @text.height / 2
     end
 
-    def resize_border!
+    def resize!
       @border.width = self.width + 2
       @border.height = self.height + 2
+      @shadow.width = self.width
+      @shadow.height = self.height
     end
 
     def z= new_z
       @border.z = new_z
+      @shadow.z = new_z
       super new_z
       @text.z = new_z
     end
@@ -55,13 +79,16 @@ module Ruby2D
 
       @border.x = @border.x + dx
       @border.y = @border.y + dy
+
+      @shadow.x = @shadow.x + dx
+      @shadow.y = @shadow.y + dy
     end
 
     def resize dx, dy
       self.width = @width + dx
       self.height = @height + dy
 
-      resize_border!
+      resize!
       arrange_text!
     end
 
@@ -69,12 +96,15 @@ module Ruby2D
       self.color = 'black'
       @border.color = 'white'
       @text.color = 'white'
+      @shadow.color = 'white'
     end
 
     def revert
       self.color = 'white'
       @border.color = 'black'
       @text.color = 'black'
+      @shadow.color = 'black'
+      hide_border if @show_border.zero?
     end
   end
 end
@@ -161,6 +191,7 @@ on :mouse_move do |e|
 end
 
 toggle = 0
+gtoggle = 0
 on :key_up do |e|
   if e.key.to_sym == :f
     if toggle.zero?
@@ -169,6 +200,14 @@ on :key_up do |e|
     else
       farther @objects.first
       toggle = 0
+    end
+  elsif e.key.to_sym == :g
+    if gtoggle.zero?
+      @objects.first.hide_border
+      gtoggle = 1
+    else
+      @objects.first.show_border
+      gtoggle = 0
     end
   end
 end

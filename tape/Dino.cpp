@@ -159,7 +159,9 @@ void Dino::aWrite() {
 
 // CMD = 04 // Analog Read
 void Dino::aRead() {
-  rval = analogRead(pin);
+  // rval = analogRead(pin);
+  // downsample to 8-bit!
+  rval = map(analogRead(pin), 0, 1023, 0, 255);
   sprintf(response, "%02d:%02d", pin, rval);
 }
 
