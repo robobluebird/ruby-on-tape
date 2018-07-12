@@ -11,13 +11,18 @@ vals[true] = :on
 vals[false] = :off
 
 samples = []
+amp = [].fill 0, 0, 3
 
 sensor.when_data_received do |data|
   data = data.to_i
 
-  led1.send vals[data >= 85]
-  led2.send vals[data >= 170]
-  led3.send vals[data == 255]
+  amp.push(data).shift
+
+  if amp[0] <= amp[1] && amp[2] <= amp[1]
+    led1.send vals[amp[1] >= 85]
+    led2.send vals[amp[1] >= 170]
+    led3.send vals[amp[1] >= 250]
+  end
 
   samples << data
 end
