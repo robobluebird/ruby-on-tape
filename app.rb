@@ -3,6 +3,40 @@ require 'ruby2d'
 @z = -1
 
 module Ruby2D
+  class MyImage < Image
+    def initialize opts = {}
+      super opts
+
+      @rd = self.width > self.height ? :v : :h
+      @r = @rd == :h ? self.height.to_f / self.width : self.width.to_f / self.height
+    end
+
+    def translate dx, dy
+      self.x = @x + dx
+      self.y = @y + dy
+    end
+
+    def resize dx, dy
+      if !dx.zero?
+        self.width = @width + dx
+
+        if @rd == :h
+          self.height = self.width / @r
+        else
+          self.height = self.width * @r
+        end
+      else
+        self.height = @height + dy
+
+        if @rd == :h
+          self.width = self.height / @r
+        else
+          self.width = self.height * @r
+        end
+      end
+    end
+  end
+
   class Button < Rectangle
     attr_accessor :tag, :label, :show_border
 
@@ -42,12 +76,14 @@ module Ruby2D
     def show_border
       @border.opacity = 1
       @shadow.opacity = 1
+      self.opacity = 1
       @show_border = 1
     end
 
     def hide_border
       @border.opacity = 0
       @shadow.opacity = 0
+      self.opacity = 0
       @show_border = 0
     end
 
@@ -94,15 +130,15 @@ module Ruby2D
 
     def invert
       self.color = 'black'
-      @border.color = 'white'
       @text.color = 'white'
+      @border.color = 'white'
       @shadow.color = 'white'
     end
 
     def revert
       self.color = 'white'
-      @border.color = 'black'
       @text.color = 'black'
+      @border.color = 'black'
       @shadow.color = 'black'
       hide_border if @show_border.zero?
     end
@@ -161,6 +197,8 @@ end
   height: 50
 )
 
+@objects << MyImage.new(path: 'tape.png')
+
 def resizing? item, e
   ((item.x + item.width - 10)..(item.x + item.width)).cover?(e.x) &&
     ((item.y + item.height - 10)..(item.y + item.height)).cover?(e.y)
@@ -171,7 +209,7 @@ on :mouse_down do |e|
 
   next unless @item
 
-  @item.invert
+  @item.invert if @item.respond_to? :invert
 
   @mtype = if resizing?(@item, e)
              :resize
@@ -181,13 +219,17 @@ on :mouse_down do |e|
 end
 
 on :mouse_up do |e|
-  @item.revert if @item
+  @item.revert if @item && @item.respond_to?(:revert)
   @item = nil
   @mtype = nil
 end
 
 on :mouse_move do |e|
-  @item.send @mtype, e.delta_x, e.delta_y if @item && @mtype
+  if @item && @mtype
+    e.delta_x = 0 if @item.x + @item.width + e.delta_x >= get(:width) || @item.x + e.delta_x <= 0
+    e.delta_y = 0 if @item.y + @item.height + e.delta_y >= get(:height) || @item.y + e.delta_y <= 0
+    @item.send @mtype, e.delta_x, e.delta_y
+  end
 end
 
 toggle = 0
