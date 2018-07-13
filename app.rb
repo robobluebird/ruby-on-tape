@@ -142,6 +142,16 @@ module Ruby2D
       @shadow.color = 'black'
       hide_border if @show_border.zero?
     end
+
+    # m = MiniMagick::Image.open('tape2.jpg')
+    # m = MiniMagick::Image.new('tape2.jpg')
+    # m.format 'png'
+    # m.resize '512x512'
+    # m.depth 4
+    # m.colorspace 'Gray'
+    # m.scale '10%'
+    # m.scale '1000%'
+    # m.write 'images/tape2.png'
   end
 end
 
