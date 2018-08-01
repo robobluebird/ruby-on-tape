@@ -7,8 +7,20 @@ module Ruby2D
     def initialize opts = {}
       super opts
 
-      @rd = self.width > self.height ? :v : :h
+      @rd = self.width >= self.height ? :v : :h
       @r = @rd == :h ? self.height.to_f / self.width : self.width.to_f / self.height
+
+      if @rd == :v
+        if self.height > opts[:context].get(:height)
+          new_h = opts[:context].get(:height) - self.height - 10
+          resize 0, new_h
+        end
+      else
+        if self.width > opts[:context].get(:width)
+          new_w = opts[:context].get(:width) - self.width - 10
+          resize new_w, 0
+        end
+      end
     end
 
     def translate dx, dy
@@ -17,7 +29,7 @@ module Ruby2D
     end
 
     def resize dx, dy
-      if !dx.zero?
+      if !dx.to_i.zero?
         self.width = @width + dx
 
         if @rd == :h
@@ -207,7 +219,7 @@ end
   height: 50
 )
 
-@objects << MyImage.new(path: 'tape.png')
+@objects << MyImage.new(path: 'tape.png', context: self)
 
 def resizing? item, e
   ((item.x + item.width - 10)..(item.x + item.width)).cover?(e.x) &&
@@ -236,8 +248,12 @@ end
 
 on :mouse_move do |e|
   if @item && @mtype
-    e.delta_x = 0 if @item.x + @item.width + e.delta_x >= get(:width) || @item.x + e.delta_x <= 0
-    e.delta_y = 0 if @item.y + @item.height + e.delta_y >= get(:height) || @item.y + e.delta_y <= 0
+    e.delta_x = 0 if (@item.x + e.delta_x < 0 && @mtype == :translate) || @item.x + @item.width + e.delta_x > get(:width) || @item.x + @item.width + e.delta_x < 0
+    e.delta_y = 0 if (@item.y + e.delta_y < 0 && @mtype == :translate) || @item.y + @item.height + e.delta_y > get(:height) || @item.y + @item.height + e.delta_y < 0
+
+    p e.delta_x
+    p e.delta_y
+
     @item.send @mtype, e.delta_x, e.delta_y
   end
 end
