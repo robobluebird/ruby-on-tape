@@ -3,15 +3,24 @@ require 'observer'
 class Counter
   include Observable
 
-  def initialize timer_or_counter
+  def initialize signaler = nil
     @count = 0
-    @carry = 0
 
-    timer_or_counter.add_observer self
+    signaler.add_observer(self) if signaler
+  end
+
+  def update
+    @count += 1
+
+    if @count == 16
+      changed
+      notify_observers
+      @count = 0
+    end
   end
 
   def bin
-    "%08b" % @count
+    "%04b" % @count
   end
 
   def dec
@@ -22,15 +31,5 @@ class Counter
     count = count.to_i
     raise Exception.new('out of range') if count > 255 || count < 0
     @count = count
-  end
-
-  def update
-    @count += 1
-
-    if @count == 255
-      changed
-      @count = 0
-      notify_observers
-    end
   end
 end

@@ -3,15 +3,13 @@ require 'observer'
 class Timer
   include Observable
 
-  def run &block
+  def run
     loop do
-      block.call
-
       changed
 
       notify_observers
 
-      sleep 0.001
+      sleep 0.1
     end
   end
 end

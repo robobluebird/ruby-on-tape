@@ -7,12 +7,17 @@ class Machine
   def initialize
     @timer = Timer.new
     @counter1 = Counter.new @timer
-    @counter2 = Counter.new @counter
+    @counter2 = Counter.new @counter1
     @trigger = Trigger.new ref: 0, hys: 0.05
+    @timer.add_observer self
   end
 
-  def start &block
-    @timer.run &block
+  def update
+    p sum
+  end
+
+  def start
+    @timer.run
   end
 
   def sum
@@ -22,6 +27,4 @@ end
 
 m = Machine.new
 
-m.start do
-  p m.sum
-end
+m.start
