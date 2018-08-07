@@ -2,7 +2,7 @@ class Trigger
   attr_reader :low, :high, :ref
 
   def initialize opts = {}
-    @ref = opts[:ref]
+    @ref = opts[:ref].to_f
     @low = @ref - opts[:hys]
     @high = @ref + opts[:hys]
     @state = State.new :low
@@ -12,15 +12,15 @@ class Trigger
     @state.to_sym
   end
 
+  def state= state
+    @state.set state
+  end
+
   def update val
-    if @state.low?
-      if val > @high
-        @state.set :high
-      end
-    elsif @state.high?
-      if val < @low
-        @state.set :low
-      end
+    if val > @high
+      self.state = :high
+    elsif val < @low
+      self.state = :low
     end
   end
 end
