@@ -17,9 +17,9 @@ class Trigger
   end
 
   def update val
-    if val > @high
+    if @state.low? && val > @high
       self.state = :high
-    elsif val < @low
+    elsif @state.high? && val < @low
       self.state = :low
     end
   end

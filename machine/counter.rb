@@ -10,6 +10,10 @@ class Counter
   end
 
   def update
+    tick
+  end
+
+  def tick
     @count += 1
 
     if @count == 16

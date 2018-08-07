@@ -1,4 +1,5 @@
 require 'ruby2d'
+require 'mini_magick'
 
 @z = -1
 
@@ -7,20 +8,8 @@ module Ruby2D
     def initialize opts = {}
       super opts
 
-      @rd = self.width >= self.height ? :v : :h
-      @r = @rd == :h ? self.height.to_f / self.width : self.width.to_f / self.height
-
-      if @rd == :v
-        if self.height > opts[:context].get(:height)
-          new_h = opts[:context].get(:height) - self.height - 10
-          resize 0, new_h
-        end
-      else
-        if self.width > opts[:context].get(:width)
-          new_w = opts[:context].get(:width) - self.width - 10
-          resize new_w, 0
-        end
-      end
+      @rd = self.width >= self.height ? :horizontal : :vertical
+      @r = @rd == :horizontal ? self.height.to_f / self.width : self.width.to_f / self.height
     end
 
     def translate dx, dy
@@ -32,15 +21,15 @@ module Ruby2D
       if !dx.to_i.zero?
         self.width = @width + dx
 
-        if @rd == :h
-          self.height = self.width / @r
-        else
+        if @rd == :horizontal
           self.height = self.width * @r
+        else
+          self.height = self.width / @r
         end
       else
         self.height = @height + dy
 
-        if @rd == :h
+        if @rd == :horizontal
           self.width = self.height / @r
         else
           self.width = self.height * @r
@@ -155,10 +144,10 @@ module Ruby2D
       hide_border if @show_border.zero?
     end
 
-    # m = MiniMagick::Image.open('tape2.jpg')
     # m = MiniMagick::Image.new('tape2.jpg')
     # m.format 'png'
     # m.resize '512x512'
+    # m.ordered_dither 'o3x3'
     # m.depth 4
     # m.colorspace 'Gray'
     # m.scale '10%'
@@ -172,6 +161,24 @@ end
 
 set title: "..."
 set background: 'white'
+
+def load_image filename
+  Dir.mkdir 'images' rescue nil
+
+  m = MiniMagick::Image.open filename
+
+  m.colorspace 'gray'
+  m.posterize 5
+  m.resize '256x256'
+  m.scale '50%'
+  m.scale '200%'
+
+  path = "images/#{filename}"
+
+  m.write path
+
+  MyImage.new path: path, context: self
+end
 
 def closer item
   i = zord.index(item)
@@ -219,7 +226,7 @@ end
   height: 50
 )
 
-@objects << MyImage.new(path: 'tape.png', context: self)
+@objects << load_image('musu.jpg')
 
 def resizing? item, e
   ((item.x + item.width - 10)..(item.x + item.width)).cover?(e.x) &&
@@ -250,9 +257,6 @@ on :mouse_move do |e|
   if @item && @mtype
     e.delta_x = 0 if (@item.x + e.delta_x < 0 && @mtype == :translate) || @item.x + @item.width + e.delta_x > get(:width) || @item.x + @item.width + e.delta_x < 0
     e.delta_y = 0 if (@item.y + e.delta_y < 0 && @mtype == :translate) || @item.y + @item.height + e.delta_y > get(:height) || @item.y + @item.height + e.delta_y < 0
-
-    p e.delta_x
-    p e.delta_y
 
     @item.send @mtype, e.delta_x, e.delta_y
   end
