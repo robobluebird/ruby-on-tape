@@ -1,6 +1,14 @@
 class State
-  def initialize state
+  def initialize state = :low
     @state = verify state
+  end
+
+  def low
+    @state = :low
+  end
+
+  def high
+    @state = :high
   end
 
   def set state

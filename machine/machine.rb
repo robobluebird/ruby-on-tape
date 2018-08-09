@@ -1,18 +1,20 @@
 require_relative 'state'
-require_relative 'timer'
+require_relative 'clock'
 require_relative 'counter'
 require_relative 'trigger'
+require_relative 'latch'
+require_relative 'shift_register'
 
 class Machine
   def initialize opts = {}
-    interval = 1 / opts[:cycles_per_second].to_f
+    interval = 1 / (opts[:khz].to_f * 1000)
 
-    @timer = Timer.new interval
-    @counter1 = Counter.new @timer
+    @clock = Clock.new interval
+    @counter1 = Counter.new @clock
     @counter2 = Counter.new @counter1
-    @trigger = Trigger.new ref: 0, hys: 0.05
+    @trigger = Trigger.new 0, 0.05
 
-    @timer.add_observer self
+    @clock.add_observer self
   end
 
   def update
@@ -20,7 +22,7 @@ class Machine
   end
 
   def start
-    @timer.run
+    @clock.run
   end
 
   def sum

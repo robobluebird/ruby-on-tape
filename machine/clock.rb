@@ -1,6 +1,6 @@
 require 'observer'
 
-class Timer
+class Clock
   include Observable
 
   def initialize interval

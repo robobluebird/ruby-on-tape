@@ -1,26 +1,27 @@
 class Trigger
-  attr_reader :low, :high, :ref
+  attr_reader :lt, :ht, :ref
 
-  def initialize opts = {}
-    @ref = opts[:ref].to_f
-    @low = @ref - opts[:hys]
-    @high = @ref + opts[:hys]
-    @state = State.new :low
+  def initialize ref, hys
+    @ref = ref.to_f
+    @lt = @ref - hys
+    @ht = @ref + hys
+    @state = State.new
   end
 
   def state
     @state.to_sym
   end
 
-  def state= state
-    @state.set state
+  def update val
+    test val
   end
 
-  def update val
-    if @state.low? && val > @high
-      self.state = :high
-    elsif @state.high? && val < @low
-      self.state = :low
+  def test val
+    raise Exception.new('Bad test value') unless val.is_a? Numeric
+    if @state.low? && val > @ht
+      @state.high
+    elsif @state.high? && val < @lt
+      @state.low
     end
   end
 end
