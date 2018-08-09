@@ -4,11 +4,14 @@ require_relative 'counter'
 require_relative 'trigger'
 
 class Machine
-  def initialize
-    @timer = Timer.new
+  def initialize opts = {}
+    interval = 1 / opts[:cycles_per_second].to_f
+
+    @timer = Timer.new interval
     @counter1 = Counter.new @timer
     @counter2 = Counter.new @counter1
     @trigger = Trigger.new ref: 0, hys: 0.05
+
     @timer.add_observer self
   end
 
@@ -24,7 +27,3 @@ class Machine
     @counter2.bin + @counter1.bin
   end
 end
-
-m = Machine.new
-
-m.start
