@@ -32,8 +32,6 @@ class Counter
   end
 
   def set count
-    count = count.to_i
-    raise Exception.new('out of range') if count > 255 || count < 0
-    @count = count
+    @count = count.to_i
   end
 end
